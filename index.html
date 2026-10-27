@@ -88,29 +88,28 @@ function startSpeech(target,statusEl,buttonEl){
 // Interpreta expressões comuns em português e preenche data/hora a partir da fala.
 function localISODate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function parseSpokenAppointment(input){
- let text=input.replace(/\s+/g,' ').trim();const words=text.split(' ');for(let size=Math.floor(words.length/2);size>=3;size--){if(words.length>=size*2){const a=words.slice(0,size).join(' ').replace(/[.,!?]/g,'').toLocaleLowerCase('pt-BR');const b=words.slice(size,size*2).join(' ').replace(/[.,!?]/g,'').toLocaleLowerCase('pt-BR');if(a===b){text=words.slice(0,size).join(' ');break}}}const half=Math.floor(text.length/2);if(text.length>18&&text.slice(0,half).trim().toLocaleLowerCase('pt-BR')===text.slice(half).trim().toLocaleLowerCase('pt-BR'))text=text.slice(0,half).trim();let lower=text.toLocaleLowerCase('pt-BR'), date='', time='';
- const now=new Date(), base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
- const weekdays={'domingo':0,'segunda':1,'segunda-feira':1,'terça':2,'terca':2,'terça-feira':2,'terca-feira':2,'quarta':3,'quarta-feira':3,'quinta':4,'quinta-feira':4,'sexta':5,'sexta-feira':5,'sábado':6,'sabado':6};
- if(/\bdepois de amanhã\b|\bdepois de amanha\b/.test(lower)){let d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/depois de amanhã|depois de amanha/i,' ')}
- else if(/\bamanhã\b|\bamanha\b/.test(lower)){let d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/amanhã|amanha/i,' ')}
- else if(/\bhoje\b/.test(lower)){date=localISODate(base);text=text.replace(/\bhoje\b/i,' ')}
+ let text=input.replace(/\s+/g,' ').trim();
+ // Remove duplicação típica do ditado do teclado/iOS.
+ const words=text.split(' ');for(let size=Math.floor(words.length/2);size>=3;size--){if(words.length>=size*2){const a=words.slice(0,size).join(' ').replace(/[.,!?]/g,'').toLocaleLowerCase('pt-BR');const b=words.slice(size,size*2).join(' ').replace(/[.,!?]/g,'').toLocaleLowerCase('pt-BR');if(a===b){text=words.slice(0,size).join(' ');break}}}
+ const base=new Date();base.setHours(0,0,0,0);let date='',time='';
+ const boundary='(^|[^A-Za-z0-9])';
+ function removeMatch(re){const m=text.match(re);if(m){text=text.replace(re,' ');return m[0].trim()}return ''}
+ // Data: boundaries ASCII-safe, because JavaScript \b does not treat ã/ç as letters.
+ if(new RegExp(boundary+'depois de amanha(?=$|[^A-Za-z0-9])','i').test(text.normalize('NFD').replace(/[\u0300-\u036f]/g,''))){const d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])depois de amanhã(?=$|[^A-Za-z0-9])/i,' ').replace(/(^|[^A-Za-z0-9])depois de amanha(?=$|[^A-Za-z0-9])/i,' ')}
+ else if(/(^|[^A-Za-z0-9])amanh[ãa](?=$|[^A-Za-z0-9])/i.test(text)){const d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])amanhã(?=$|[^A-Za-z0-9])/i,' ').replace(/(^|[^A-Za-z0-9])amanha(?=$|[^A-Za-z0-9])/i,' ')}
+ else if(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i.test(text)){date=localISODate(base);text=text.replace(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i,' ')}
  else {
-  const dm=lower.match(/\b(?:dia\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
-  if(dm){let y=dm[3]?Number(dm[3]):now.getFullYear();if(y<100)y+=2000;const d=new Date(y,Number(dm[2])-1,Number(dm[1]));if(d.getDate()===Number(dm[1])&&d.getMonth()===Number(dm[2])-1){date=localISODate(d);text=text.replace(dm[0],' ')}}
-  else {
-   const dayOnly=lower.match(/\bdia\s+(\d{1,2})\b/);
-   if(dayOnly){let day=Number(dayOnly[1]);let d=new Date(base.getFullYear(),base.getMonth(),day);if(day>=1&&day<=31){if(d.getMonth()!==base.getMonth()||d.getDate()!==day)d=new Date(base.getFullYear(),base.getMonth()+1,day);if(d<base)d=new Date(base.getFullYear(),base.getMonth()+1,day);date=localISODate(d);text=text.replace(dayOnly[0],' ')}}
-   else {
-   const weekdayPattern=new RegExp('\\b(?:na próxima |próxima |proxima )?('+Object.keys(weekdays).sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','i');
-   const wm=lower.match(weekdayPattern);
-   if(wm){let target=weekdays[wm[1].toLocaleLowerCase('pt-BR')],delta=(target-base.getDay()+7)%7;if(delta===0||/próxima|proxima/.test(wm[0]))delta=delta===0?7:delta+7;let d=new Date(base);d.setDate(d.getDate()+delta);date=localISODate(d);text=text.replace(new RegExp(wm[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ')}
-   }
-  }
+  let m=text.match(/(?:^|[^\d])(dia\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?(?=$|[^\d])/i);
+  if(m){let day=Number(m[2]),month=Number(m[3]),year=m[4]?Number(m[4]):base.getFullYear();if(year<100)year+=2000;const d=new Date(year,month-1,day);if(d.getDate()===day&&d.getMonth()===month-1){date=localISODate(d);text=text.replace(m[0],' ')}}
+  else {m=text.match(/(^|[^A-Za-z0-9])dia\s+(\d{1,2})(?=$|[^\d])/i);if(m){const day=Number(m[2]);if(day>=1&&day<=31){let d=new Date(base.getFullYear(),base.getMonth(),day);if(d<base||d.getMonth()!==base.getMonth())d=new Date(base.getFullYear(),base.getMonth()+1,day);date=localISODate(d);text=text.replace(m[0],' ')}}}
  }
- let tm=lower.match(/\b(?:às?|as)\s*(\d{1,2})(?:\s*(?:e)\s*(\d{1,2})|[:h](\d{2}))?\s*(?:horas?|h)?\b/);
- if(!tm)tm=lower.match(/\b(\d{1,2})\s*(?:horas?|h)(?:\s*(\d{2})\s*(?:minutos?)?)?\b/);
- if(tm){let h=Number(tm[1]),m=Number(tm[3]||tm[2]||0);if(h<=23&&m<=59){time=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');text=text.replace(new RegExp(tm[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ')}}
- text=text.replace(/\b(?:para|no|na|às|as|dia)\b/gi,' ').replace(/\s+([,.;])/g,'$1').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g,'').replace(/\s{2,}/g,' ').trim();
+ // Hora em algarismos (7h40, 7:40, às 8, às 8 horas) e por extenso (às oito).
+ const numberWords={'zero':0,'uma':1,'um':1,'duas':2,'dois':2,'três':3,'tres':3,'quatro':4,'cinco':5,'seis':6,'sete':7,'oito':8,'nove':9,'dez':10,'onze':11,'doze':12,'treze':13,'catorze':14,'quatorze':14,'quinze':15,'dezesseis':16,'dezessete':17,'dezoito':18,'dezenove':19,'vinte':20};
+ let tm=text.match(/(^|[^A-Za-z0-9])(?:às?\s*|as\s*)(\d{1,2})(?:\s*(?:e\s*)?(\d{1,2})|[:h](\d{2}))?\s*(?:horas?|h)?(?=$|[^A-Za-z0-9])/i);
+ if(!tm)tm=text.match(/(^|[^A-Za-z0-9])(\d{1,2})\s*(?:horas?|h)(?:\s*(\d{2})\s*(?:minutos?)?)?(?=$|[^A-Za-z0-9])/i);
+ if(tm){let h=Number(tm[2]),m=Number(tm[4]||tm[3]||0);if(h<=23&&m<=59){time=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');text=text.replace(tm[0],' ')}}
+ else {const spoken=text.match(/(^|[^A-Za-z0-9])(?:às?\s*|as\s*)(zero|uma|um|duas|dois|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte)(?:\s+horas?)?(?=$|[^A-Za-z0-9])/i);if(spoken){const h=numberWords[spoken[2].toLocaleLowerCase('pt-BR')];time=String(h).padStart(2,'0')+':00';text=text.replace(spoken[0],' ')}}
+ text=text.replace(/\b(?:para|no|na|dia)\b/gi,' ').replace(/\s+([,.;])/g,'$1').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g,'').replace(/\s{2,}/g,' ').trim();
  return {title:text,date,time};
 }
 
