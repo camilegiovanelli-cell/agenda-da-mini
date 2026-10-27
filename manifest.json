@@ -1,12 +1,12 @@
 {
-  "name": "Agenda da Mini",
-  "short_name": "Mini",
+  "name": "Agenda da Mile",
+  "short_name": "Mile",
   "description": "Sua agenda pessoal e profissional, com carinho.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#fff8fb",
-  "theme_color": "#f8dce8",
+  "background_color": "#fcf8ff",
+  "theme_color": "#eadcff",
   "icons": [
     {
       "src": "./icon.svg",

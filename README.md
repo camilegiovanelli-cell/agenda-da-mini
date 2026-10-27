@@ -1,6 +1,6 @@
-# Agenda da Mini 🐾
+# Agenda da Mile 🐾
 
-Agenda web instalável para iPhone, com visual pastel e mascote da Mini.
+Agenda web instalável para iPhone, com visual pastel e mascote da Mile.
 
 ## Arquivos
 - `index.html`: aplicativo e funcionalidades.
@@ -9,7 +9,7 @@ Agenda web instalável para iPhone, com visual pastel e mascote da Mini.
 - `icon.svg`: ícone personalizado.
 
 ## Publicar no Vercel
-1. Envie estes arquivos para a raiz do repositório GitHub `agenda-da-mini`.
+1. Envie estes arquivos para a raiz do repositório GitHub `agenda-da-mile`.
 2. No Vercel, escolha **Add New → Project** e importe esse repositório.
 3. Como é um site HTML estático, não precisa de framework nem comando de build. Se houver campos, deixe **Build Command** vazio e **Output Directory** como `.`.
 4. Faça o deploy e abra a URL gerada no Safari do iPhone.
@@ -27,3 +27,7 @@ Agenda web instalável para iPhone, com visual pastel e mascote da Mini.
 - **Ditado para o diário:** transforma fala em texto quando o navegador oferece reconhecimento de fala.
 - **Gravar áudio:** solicita permissão do microfone e grava áudio para guardar junto com o registro do diário. Os áudios ficam no armazenamento local do navegador (IndexedDB) e não são incluídos no backup JSON de texto. Não limpe os dados do Safari se quiser manter esses áudios.
 - Para gravar, abra o site publicado por HTTPS e permita o acesso ao microfone.
+
+
+## Atualização visual
+Esta versão renomeia o aplicativo para Agenda da Mile, adota tons de lilás bebê e inclui uma ilustração cartoon na identificação visual. Inclui ditado por voz para compromissos/diário quando suportado pelo navegador e gravação de áudio no diário.
