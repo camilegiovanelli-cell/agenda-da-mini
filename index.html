@@ -22,7 +22,7 @@ nav{display:flex;gap:7px;overflow:auto;padding:3px 0 13px;scrollbar-width:none}n
 <div class="welcome"><div><h2>Oi, Mile! 💜</h2><p>Vamos deixar o dia mais leve?</p></div><div class="count" id="counter">0 pendentes</div></div>
 <nav id="nav"><button class="active" data-tab="tarefas">🐾 Tarefas</button><button data-tab="diario">📔 Diário</button><button data-tab="semana">🌷 Semana</button><button data-tab="ajustes">⚙️ Meu cantinho</button></nav>
 <section id="tab-tarefas">
-<div class="card"><h3>💌 Anotar compromisso</h3><form id="taskForm"><input id="taskInput" class="field" placeholder="O que você precisa lembrar?" required maxlength="180"><div class="voice-row"><button class="btn primary" type="button" id="taskVoiceBtn">🎙️ Adicionar por voz</button><button class="btn hidden" type="button" id="taskStopBtn">⏹ Parar</button></div><p class="status" id="taskVoiceStatus" aria-live="polite">Toque em “Adicionar por voz”, fale seu compromisso e toque em “Parar”. O texto reconhecido aparecerá no campo para você conferir e salvar.</p><div class="chips" id="cats"><button type="button" class="chip sel" data-cat="Pessoal">💗 Pessoal</button><button type="button" class="chip" data-cat="Profissional">💼 Profissional</button></div><div class="line"><input id="taskDate" type="date" class="field" aria-label="Data"><input id="taskTime" type="time" class="field" aria-label="Horário"></div><div class="line"><select id="repeat" class="field" aria-label="Repetição"><option value="none">Não repetir</option><option value="daily">Todos os dias</option><option value="weekly">Toda semana</option></select><button class="btn primary" type="submit" id="taskSaveBtn">＋ Salvar compromisso</button></div></form><p class="hint">🎙️ Se o reconhecimento de voz não estiver disponível no navegador, toque no campo e use o microfone do teclado do iPhone.</p></div>
+<div class="card"><h3>💌 Anotar compromisso</h3><form id="taskForm"><input id="taskInput" class="field" placeholder="O que você precisa lembrar?" required maxlength="180"><div class="voice-row"><button class="btn primary" type="button" id="taskVoiceBtn">🎙️ Adicionar por voz</button><button class="btn hidden" type="button" id="taskStopBtn">⏹ Parar</button></div><p class="status" id="taskVoiceStatus" aria-live="polite">Toque em “Adicionar por voz” e diga, por exemplo, “Amanhã às 14 horas, consulta médica”. A data e o horário serão preenchidos quando reconhecidos. Toque em “Parar” e confira antes de salvar.</p><div class="chips" id="cats"><button type="button" class="chip sel" data-cat="Pessoal">💗 Pessoal</button><button type="button" class="chip" data-cat="Profissional">💼 Profissional</button></div><div class="line"><input id="taskDate" type="date" class="field" aria-label="Data"><input id="taskTime" type="time" class="field" aria-label="Horário"></div><div class="line"><select id="repeat" class="field" aria-label="Repetição"><option value="none">Não repetir</option><option value="daily">Todos os dias</option><option value="weekly">Toda semana</option></select><button class="btn primary" type="submit" id="taskSaveBtn">＋ Salvar compromisso</button></div></form><p class="hint">🎙️ Se o reconhecimento de voz não estiver disponível no navegador, toque no campo e use o microfone do teclado do iPhone.</p></div>
 <div class="card"><h3>🌼 O que vem por aí</h3><div class="chips"><button class="chip sel" data-filter="all">Tudo</button><button class="chip" data-filter="Pessoal">Pessoal</button><button class="chip" data-filter="Profissional">Profissional</button><button class="chip" data-filter="done">Concluídas</button></div><div id="taskList"></div></div>
 </section>
 <section id="tab-diario" class="hidden"><div class="card"><h3>📔 Meu diário do dia</h3><form id="diaryForm"><textarea id="diaryInput" class="field" rows="5" placeholder="Como foi seu dia? O que aconteceu? O que quer guardar na memória?"></textarea><div class="voice-row"><button class="btn" type="button" id="diaryVoiceBtn">🎙️ Ditado para o diário</button><button class="btn yellow" type="button" id="recordBtn">🔴 Iniciar gravação</button><button class="btn" type="button" id="stopRecordBtn" disabled>⏹️ Parar e finalizar</button></div><p class="status" id="diaryVoiceStatus" aria-live="polite">Você pode ditar para transformar sua fala em texto ou gravar um áudio para guardar junto ao registro.</p><audio id="recordPreview" class="audio-player hidden" controls></audio><button class="btn primary" style="margin-top:9px;width:100%">Guardar no diário ♡</button></form><p class="hint">Seus textos e áudios ficam salvos neste aparelho/navegador. Faça backup dos textos; os arquivos de áudio não são incluídos no backup JSON.</p></div><div class="card"><h3>🌙 Registros anteriores</h3><div id="diaryList"></div></div></section>
@@ -76,6 +76,32 @@ function startSpeech(target,statusEl,buttonEl){
 }
 
 
+
+// Interpreta expressões comuns em português e preenche data/hora a partir da fala.
+function localISODate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function parseSpokenAppointment(input){
+ let text=input.replace(/\s+/g,' ').trim(), lower=text.toLocaleLowerCase('pt-BR'), date='', time='';
+ const now=new Date(), base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const weekdays={'domingo':0,'segunda':1,'segunda-feira':1,'terça':2,'terca':2,'terça-feira':2,'terca-feira':2,'quarta':3,'quarta-feira':3,'quinta':4,'quinta-feira':4,'sexta':5,'sexta-feira':5,'sábado':6,'sabado':6};
+ if(/\bdepois de amanhã\b|\bdepois de amanha\b/.test(lower)){let d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/depois de amanhã|depois de amanha/i,' ')}
+ else if(/\bamanhã\b|\bamanha\b/.test(lower)){let d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/amanhã|amanha/i,' ')}
+ else if(/\bhoje\b/.test(lower)){date=localISODate(base);text=text.replace(/\bhoje\b/i,' ')}
+ else {
+  const dm=lower.match(/\b(?:dia\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+  if(dm){let y=dm[3]?Number(dm[3]):now.getFullYear();if(y<100)y+=2000;const d=new Date(y,Number(dm[2])-1,Number(dm[1]));if(d.getDate()===Number(dm[1])&&d.getMonth()===Number(dm[2])-1){date=localISODate(d);text=text.replace(dm[0],' ')}}
+  else {
+   const weekdayPattern=new RegExp('\\b(?:na próxima |próxima |proxima )?('+Object.keys(weekdays).sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')\\b','i');
+   const wm=lower.match(weekdayPattern);
+   if(wm){let target=weekdays[wm[1].toLocaleLowerCase('pt-BR')],delta=(target-base.getDay()+7)%7;if(delta===0||/próxima|proxima/.test(wm[0]))delta=delta===0?7:delta+7;let d=new Date(base);d.setDate(d.getDate()+delta);date=localISODate(d);text=text.replace(new RegExp(wm[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ')}
+  }
+ }
+ let tm=lower.match(/\b(?:às?|as)\s*(\d{1,2})(?:[:h](\d{2}))?\s*(?:horas?|h)?\b/);
+ if(!tm)tm=lower.match(/\b(\d{1,2})\s*(?:horas?|h)(?:\s*(\d{2})\s*(?:minutos?)?)?\b/);
+ if(tm){let h=Number(tm[1]),m=Number(tm[2]||0);if(h<=23&&m<=59){time=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');text=text.replace(new RegExp(tm[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),' ')}}
+ text=text.replace(/\b(?:para|no|na|às|as|dia)\b/gi,' ').replace(/\s+([,.;])/g,'$1').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g,'').replace(/\s{2,}/g,' ').trim();
+ return {title:text,date,time};
+}
+
 // Fluxo de compromisso por voz: iniciar -> parar -> conferir texto -> salvar.
 let taskRecognition=null, taskListening=false, taskHasTranscript=false;
 const taskVoiceBtn=$('#taskVoiceBtn'), taskStopBtn=$('#taskStopBtn'), taskVoiceStatus=$('#taskVoiceStatus'), taskInput=$('#taskInput'), taskSaveBtn=$('#taskSaveBtn');
@@ -86,10 +112,10 @@ taskVoiceBtn.onclick=()=>{
  if(!Speech){taskVoiceStatus.textContent='Este navegador não oferece reconhecimento de fala direto. Toque no campo de texto e use o microfone do teclado do iPhone; depois toque em “Salvar compromisso”.';taskInput.focus();return}
  try{
   taskRecognition=new Speech();taskRecognition.lang='pt-BR';taskRecognition.continuous=true;taskRecognition.interimResults=true;
-  taskHasTranscript=false;taskInput.value='';taskListening=true;taskVoiceBtn.textContent='🎙️ Ouvindo…';taskVoiceBtn.classList.add('recording');taskVoiceBtn.disabled=true;taskStopBtn.classList.remove('hidden');taskStopBtn.disabled=false;taskSaveBtn.textContent='＋ Salvar compromisso';taskVoiceStatus.textContent='Estou ouvindo. Fale seu compromisso e toque em “Parar” quando terminar.';
+  taskHasTranscript=false;taskInput.value='';taskListening=true;taskVoiceBtn.textContent='🎙️ Ouvindo…';taskVoiceBtn.classList.add('recording');taskVoiceBtn.disabled=true;taskStopBtn.classList.remove('hidden');taskStopBtn.disabled=false;taskSaveBtn.textContent='＋ Salvar compromisso';taskVoiceStatus.textContent='Estou ouvindo. Diga o compromisso incluindo dia e horário, por exemplo: “Amanhã às 14 horas, consulta médica”. Toque em “Parar” quando terminar.';
   taskRecognition.onresult=e=>{let transcript='';for(let i=0;i<e.results.length;i++)transcript+=e.results[i][0].transcript+(e.results[i].isFinal?' ':'');taskInput.value=transcript.trim();taskHasTranscript=!!taskInput.value};
   taskRecognition.onerror=e=>{taskVoiceStatus.textContent=e.error==='not-allowed'?'Permita o acesso ao microfone nas configurações do navegador.':'Não consegui reconhecer a fala. Tente novamente ou use o microfone do teclado.';taskRecognition=null;taskVoiceIdle()};
-  taskRecognition.onend=()=>{if(taskListening){taskListening=false;taskVoiceIdle();taskVoiceStatus.textContent=taskInput.value?'Texto reconhecido! Confira e toque em “Salvar compromisso”.':'A escuta terminou sem reconhecer fala. Tente novamente ou use o microfone do teclado.'}};
+  taskRecognition.onend=()=>{if(taskListening){taskListening=false;const raw=taskInput.value.trim();if(raw){const parsed=parseSpokenAppointment(raw);taskInput.value=parsed.title||raw;if(parsed.date)$('#taskDate').value=parsed.date;if(parsed.time)$('#taskTime').value=parsed.time;taskHasTranscript=true;taskVoiceStatus.textContent='Texto reconhecido! '+(parsed.date?'Data preenchida. ':'')+(parsed.time?'Horário preenchido. ':'')+'Confira o compromisso e toque em “Salvar compromisso”.'}else{taskVoiceStatus.textContent='A escuta terminou sem reconhecer fala. Tente novamente ou use o microfone do teclado.'}taskVoiceIdle()}};
   taskRecognition.start();
  }catch(err){taskVoiceStatus.textContent='Não foi possível iniciar o microfone. Use o microfone do teclado do iPhone.';taskRecognition=null;taskVoiceIdle()}
 };

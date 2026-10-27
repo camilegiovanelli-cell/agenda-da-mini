@@ -45,3 +45,7 @@ Esta versão renomeia o aplicativo para Agenda da Mile, adota tons de lilás beb
 - Fluxo de compromisso por voz: toque em **Adicionar por voz**, fale, toque em **Parar**, confira a transcrição e toque em **Salvar compromisso**.
 - O reconhecimento de fala depende do suporte do navegador. Se não estiver disponível no iPhone, use o microfone do teclado para ditar no campo de texto.
 - Cache do service worker atualizado para forçar a troca da versão anterior.
+
+
+## Reconhecimento de compromisso por voz
+Ao falar um compromisso em português, inclua dia e hora na frase, por exemplo: “Amanhã às 14 horas, consulta médica” ou “sexta-feira às 9h, reunião”. Ao tocar em Parar, o app tenta reconhecer expressões como hoje, amanhã, depois de amanhã, dias da semana, datas numéricas e horários, e preenche os campos de data/hora automaticamente para conferência. A precisão depende da transcrição fornecida pelo navegador; o app não identifica biometricamente a identidade da voz.
