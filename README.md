@@ -37,3 +37,11 @@ Esta versão renomeia o aplicativo para Agenda da Mile, adota tons de lilás beb
 - O diário agora tem controles separados: **Iniciar gravação** e **Parar e finalizar**.
 - Ao parar, aguarde a mensagem de finalização e o player de áudio aparecer antes de tocar em **Guardar no diário**.
 - O cache offline foi atualizado para a versão v3 para evitar que o navegador continue usando o JavaScript antigo.
+
+
+## Ajustes desta versão
+- Corrige o tamanho da ilustração da Mile no cabeçalho para ela não ocupar a tela toda.
+- Ajusta campos e cartões para evitar estouro horizontal em telas pequenas.
+- Fluxo de compromisso por voz: toque em **Adicionar por voz**, fale, toque em **Parar**, confira a transcrição e toque em **Salvar compromisso**.
+- O reconhecimento de fala depende do suporte do navegador. Se não estiver disponível no iPhone, use o microfone do teclado para ditar no campo de texto.
+- Cache do service worker atualizado para forçar a troca da versão anterior.
