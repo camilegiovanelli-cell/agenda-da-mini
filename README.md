@@ -20,3 +20,10 @@ Agenda web instalável para iPhone, com visual pastel e mascote da Mini.
 - Para entrada por voz no iPhone, use o microfone de ditado do teclado dentro do campo de texto.
 - A agenda não promete alarmes locais confiáveis quando está fechada; o suporte a notificações web no iOS tem limitações.
 - O ícone SVG funciona em navegadores modernos; se algum aparelho não o aceitar como ícone de tela inicial, será necessário fornecer uma versão PNG.
+
+
+## Recursos de voz (versão atualizada)
+- **Falar compromisso:** usa reconhecimento de fala do navegador quando disponível; no iPhone, se não funcionar, use o microfone do teclado.
+- **Ditado para o diário:** transforma fala em texto quando o navegador oferece reconhecimento de fala.
+- **Gravar áudio:** solicita permissão do microfone e grava áudio para guardar junto com o registro do diário. Os áudios ficam no armazenamento local do navegador (IndexedDB) e não são incluídos no backup JSON de texto. Não limpe os dados do Safari se quiser manter esses áudios.
+- Para gravar, abra o site publicado por HTTPS e permita o acesso ao microfone.
