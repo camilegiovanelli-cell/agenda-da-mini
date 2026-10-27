@@ -31,3 +31,9 @@ Agenda web instalável para iPhone, com visual pastel e mascote da Mile.
 
 ## Atualização visual
 Esta versão renomeia o aplicativo para Agenda da Mile, adota tons de lilás bebê e inclui uma ilustração cartoon na identificação visual. Inclui ditado por voz para compromissos/diário quando suportado pelo navegador e gravação de áudio no diário.
+
+
+## Correção da gravação de áudio
+- O diário agora tem controles separados: **Iniciar gravação** e **Parar e finalizar**.
+- Ao parar, aguarde a mensagem de finalização e o player de áudio aparecer antes de tocar em **Guardar no diário**.
+- O cache offline foi atualizado para a versão v3 para evitar que o navegador continue usando o JavaScript antigo.
