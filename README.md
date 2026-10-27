@@ -49,3 +49,10 @@ Esta versão renomeia o aplicativo para Agenda da Mile, adota tons de lilás beb
 
 ## Reconhecimento de compromisso por voz
 Ao falar um compromisso em português, inclua dia e hora na frase, por exemplo: “Amanhã às 14 horas, consulta médica” ou “sexta-feira às 9h, reunião”. Ao tocar em Parar, o app tenta reconhecer expressões como hoje, amanhã, depois de amanhã, dias da semana, datas numéricas e horários, e preenche os campos de data/hora automaticamente para conferência. A precisão depende da transcrição fornecida pelo navegador; o app não identifica biometricamente a identidade da voz.
+
+
+## Agenda diária, classificação e lembretes (v5)
+- Visão diária em linha do tempo com filtro por data, horários e categoria.
+- Classificação automática por palavras-chave para compromissos ditados (a classificação pode ser corrigida antes de salvar escolhendo Pessoal/Profissional).
+- Reconhecimento de data como “dia 28”, “amanhã”, “hoje”, dias da semana e datas numéricas, além de horários como “às 7h40”. Sempre confira a data reconhecida antes de salvar.
+- Lembrete configurado para 15 minutos antes. Por limitações do navegador/iOS, a notificação é verificada enquanto o site está aberto e visível, com permissão concedida; não funciona de forma garantida com a página fechada.
