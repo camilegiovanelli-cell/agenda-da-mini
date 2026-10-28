@@ -62,3 +62,6 @@ Ao falar um compromisso em português, inclua dia e hora na frase, por exemplo: 
 - A aba **Diário** inclui um resumo automático das atividades marcadas como concluídas, organizado pela data em que foram concluídas. O resumo é atualizado ao marcar/desmarcar tarefas e não exige digitação manual.
 - A gravação de compromisso aplica a interpretação de data e horário assim que o navegador entrega o resultado e mantém o botão disponível para novas tentativas.
 - O cache do service worker foi atualizado para solicitar a nova versão do aplicativo.
+
+
+Ícone da tela inicial: atualizado para o avatar ilustrado da Agenda da Mile. Para atualizar no iPhone, remova o atalho antigo e adicione novamente pelo Safari após publicar estes arquivos.
