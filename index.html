@@ -94,10 +94,12 @@ function parseSpokenAppointment(input){
  const base=new Date();base.setHours(0,0,0,0);let date='',time='';
  const boundary='(^|[^A-Za-z0-9])';
  function removeMatch(re){const m=text.match(re);if(m){text=text.replace(re,' ');return m[0].trim()}return ''}
- // Data: boundaries ASCII-safe, because JavaScript \b does not treat ã/ç as letters.
- if(new RegExp(boundary+'depois de amanha(?=$|[^A-Za-z0-9])','i').test(text.normalize('NFD').replace(/[\u0300-\u036f]/g,''))){const d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])depois de amanhã(?=$|[^A-Za-z0-9])/i,' ').replace(/(^|[^A-Za-z0-9])depois de amanha(?=$|[^A-Za-z0-9])/i,' ')}
- else if(/(^|[^A-Za-z0-9])amanh[ãa](?=$|[^A-Za-z0-9])/i.test(text)){const d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])amanhã(?=$|[^A-Za-z0-9])/i,' ').replace(/(^|[^A-Za-z0-9])amanha(?=$|[^A-Za-z0-9])/i,' ')}
- else if(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i.test(text)){date=localISODate(base);text=text.replace(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i,' ')}
+ // Datas relativas: detectar em texto normalizado para não depender do suporte a acentos do navegador.
+ const normalizePt=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const normalizedText=normalizePt(text);
+ if(/(^|[^a-z0-9])depois\s+de\s+amanha(?=$|[^a-z0-9])/i.test(normalizedText)){const d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])depois\s+de\s+amanh[ãa](?=$|[^A-Za-z0-9])/i,' ')}
+ else if(/(^|[^a-z0-9])amanha(?=$|[^a-z0-9])/i.test(normalizedText)){const d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])amanh[ãa](?=$|[^A-Za-z0-9])/i,' ')}
+ else if(/(^|[^a-z0-9])hoje(?=$|[^a-z0-9])/i.test(normalizedText)){date=localISODate(base);text=text.replace(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i,' ')}
  else {
   let m=text.match(/(?:^|[^\d])(dia\s*)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?(?=$|[^\d])/i);
   if(m){let day=Number(m[2]),month=Number(m[3]),year=m[4]?Number(m[4]):base.getFullYear();if(year<100)year+=2000;const d=new Date(year,month-1,day);if(d.getDate()===day&&d.getMonth()===month-1){date=localISODate(d);text=text.replace(m[0],' ')}}
@@ -122,15 +124,15 @@ taskVoiceBtn.onclick=()=>{
  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Speech){taskVoiceStatus.textContent='Este navegador não oferece reconhecimento de fala direto. Toque no campo de texto e use o microfone do teclado do iPhone; depois toque em “Salvar compromisso”.';taskInput.focus();return}
  try{
-  taskRecognition=new Speech();taskRecognition.lang='pt-BR';taskRecognition.continuous=true;taskRecognition.interimResults=true;
+  const recognition=new Speech();taskRecognition=recognition;recognition.lang='pt-BR';recognition.continuous=false;recognition.interimResults=false;
   taskHasTranscript=false;taskInput.value='';taskListening=true;taskVoiceBtn.textContent='🎙️ Ouvindo…';taskVoiceBtn.classList.add('recording');taskVoiceBtn.disabled=true;taskStopBtn.classList.remove('hidden');taskStopBtn.disabled=false;taskSaveBtn.textContent='＋ Salvar compromisso';taskVoiceStatus.textContent='Estou ouvindo. Diga o compromisso incluindo dia e horário, por exemplo: “Amanhã às 14 horas, consulta médica”. Toque em “Parar” quando terminar.';
-  taskRecognition.onresult=e=>{let finalParts=[],interim='';for(let i=0;i<e.results.length;i++){const part=e.results[i][0].transcript.trim();if(e.results[i].isFinal){if(part&&!finalParts.includes(part))finalParts.push(part)}else if(part)interim=part;}taskInput.value=[...finalParts,interim].filter(Boolean).join(' ').replace(/\b(.+?)\s+\1\b/gi,'$1').trim();taskHasTranscript=!!taskInput.value};
-  taskRecognition.onerror=e=>{taskVoiceStatus.textContent=e.error==='not-allowed'?'Permita o acesso ao microfone nas configurações do navegador.':'Não consegui reconhecer a fala. Tente novamente ou use o microfone do teclado.';taskRecognition=null;taskVoiceIdle()};
-  taskRecognition.onend=()=>{if(taskListening){taskListening=false;const raw=taskInput.value.trim();if(raw){const parsed=parseSpokenAppointment(raw);taskInput.value=parsed.title||raw;if(parsed.date)$('#taskDate').value=parsed.date;if(parsed.time)$('#taskTime').value=parsed.time;taskHasTranscript=true;taskVoiceStatus.textContent='Texto reconhecido! '+(parsed.date?'Data preenchida. ':'')+(parsed.time?'Horário preenchido. ':'')+'Confira o compromisso e toque em “Salvar compromisso”.'}else{taskVoiceStatus.textContent='A escuta terminou sem reconhecer fala. Tente novamente ou use o microfone do teclado.'}taskVoiceIdle()}};
-  taskRecognition.start();
- }catch(err){taskVoiceStatus.textContent='Não foi possível iniciar o microfone. Use o microfone do teclado do iPhone.';taskRecognition=null;taskVoiceIdle()}
+  recognition.onresult=e=>{const parts=[];for(let i=0;i<e.results.length;i++){const part=e.results[i][0].transcript.trim();if(part&&!parts.includes(part))parts.push(part)}taskInput.value=parts.join(' ').replace(/\b(.+?)\s+\1\b/gi,'$1').trim();taskHasTranscript=!!taskInput.value};
+  recognition.onerror=e=>{taskVoiceStatus.textContent=e.error==='not-allowed'?'Permita o acesso ao microfone nas configurações do navegador.':(e.error==='no-speech'?'Não detectei fala. Toque novamente e fale logo após iniciar.':'Não consegui reconhecer a fala. Tente novamente ou use o microfone do teclado.');taskListening=false;taskRecognition=null;taskVoiceIdle()};
+  recognition.onend=()=>{taskRecognition=null;if(taskListening){taskListening=false;const raw=taskInput.value.trim();if(raw){const parsed=parseSpokenAppointment(raw);taskInput.value=parsed.title||raw;if(parsed.date)$('#taskDate').value=parsed.date;if(parsed.time)$('#taskTime').value=parsed.time;taskHasTranscript=true;taskVoiceStatus.textContent='Texto reconhecido! '+(parsed.date?'Data preenchida. ':'')+(parsed.time?'Horário preenchido. ':'')+'Confira o compromisso e toque em “Salvar compromisso”.'}else{taskVoiceStatus.textContent='A escuta terminou sem reconhecer fala. Toque em “Adicionar por voz” para tentar novamente.'}taskVoiceIdle()}};
+  recognition.start();
+ }catch(err){taskVoiceStatus.textContent='Não foi possível iniciar o microfone. Use o microfone do teclado do iPhone.';taskRecognition=null;taskListening=false;taskVoiceIdle()}
 };
-taskStopBtn.onclick=()=>{if(taskRecognition&&taskListening){taskVoiceStatus.textContent='Finalizando e convertendo a fala em texto…';taskStopBtn.disabled=true;try{taskRecognition.stop()}catch(e){taskListening=false;taskVoiceIdle()}}};
+taskStopBtn.onclick=()=>{const recognition=taskRecognition;if(recognition&&taskListening){taskVoiceStatus.textContent='Finalizando e convertendo a fala em texto…';taskStopBtn.disabled=true;try{recognition.stop()}catch(e){taskListening=false;taskRecognition=null;taskVoiceIdle()}}};
 
 $('#diaryVoiceBtn').onclick=()=>startSpeech($('#diaryInput'),$('#diaryVoiceStatus'),$('#diaryVoiceBtn'));
 
