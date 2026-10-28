@@ -9,7 +9,7 @@ Agenda web instalável para iPhone, com visual pastel e mascote da Mile.
 - `icon.svg`: ícone personalizado.
 
 ## Publicar no Vercel
-1. Envie estes arquivos para a raiz do repositório GitHub `agenda-da-mile`.
+1. Envie estes arquivos para a raiz do repositório GitHub `agenda-da-mini`.
 2. No Vercel, escolha **Add New → Project** e importe esse repositório.
 3. Como é um site HTML estático, não precisa de framework nem comando de build. Se houver campos, deixe **Build Command** vazio e **Output Directory** como `.`.
 4. Faça o deploy e abra a URL gerada no Safari do iPhone.
@@ -56,3 +56,9 @@ Ao falar um compromisso em português, inclua dia e hora na frase, por exemplo: 
 - Classificação automática por palavras-chave para compromissos ditados (a classificação pode ser corrigida antes de salvar escolhendo Pessoal/Profissional).
 - Reconhecimento de data como “dia 28”, “amanhã”, “hoje”, dias da semana e datas numéricas, além de horários como “às 7h40”. Sempre confira a data reconhecida antes de salvar.
 - Lembrete configurado para 15 minutos antes. Por limitações do navegador/iOS, a notificação é verificada enquanto o site está aberto e visível, com permissão concedida; não funciona de forma garantida com a página fechada.
+
+
+## Correções v10
+- A aba **Diário** inclui um resumo automático das atividades marcadas como concluídas, organizado pela data em que foram concluídas. O resumo é atualizado ao marcar/desmarcar tarefas e não exige digitação manual.
+- A gravação de compromisso aplica a interpretação de data e horário assim que o navegador entrega o resultado e mantém o botão disponível para novas tentativas.
+- O cache do service worker foi atualizado para solicitar a nova versão do aplicativo.
