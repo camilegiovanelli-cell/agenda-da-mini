@@ -99,7 +99,22 @@ function parseSpokenAppointment(input){
  // Datas relativas: detectar em texto normalizado para não depender do suporte a acentos do navegador.
  const normalizePt=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const normalizedText=normalizePt(text);
- if(/(^|[^a-z0-9])depois\s+de\s+amanha(?=$|[^a-z0-9])/i.test(normalizedText)){const d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])depois\s+de\s+amanh[ãa](?=$|[^A-Za-z0-9])/i,' ')}
+ // Dias da semana: escolher a próxima ocorrência; se disser o dia de hoje, considerar hoje.
+ const weekdayNames={'domingo':0,'segunda':1,'segunda-feira':1,'terca':2,'terca-feira':2,'quarta':3,'quarta-feira':3,'quinta':4,'quinta-feira':4,'sexta':5,'sexta-feira':5,'sabado':6};
+ const weekdayMatch=normalizedText.match(/(^|[^a-z0-9])(domingo|segunda(?:-feira)?|terca(?:-feira)?|quarta(?:-feira)?|quinta(?:-feira)?|sexta(?:-feira)?|sabado)(?=$|[^a-z0-9])/i);
+ if(weekdayMatch){
+   const spokenDay=weekdayMatch[2].toLowerCase();
+   const targetDay=weekdayNames[spokenDay];
+   const d=new Date(base);
+   let delta=(targetDay-d.getDay()+7)%7;
+   // “próximo domingo/segunda” means the following week if that day is today.
+   const prefix=normalizedText.slice(Math.max(0,weekdayMatch.index-12),weekdayMatch.index);
+   if(delta===0 && /\b(proximo|proxima)\s*$/.test(prefix))delta=7;
+   d.setDate(d.getDate()+delta);
+   date=localISODate(d);
+   text=text.replace(new RegExp('(^|[^A-Za-z0-9])'+weekdayMatch[2].replace('-','\\-')+'(?=$|[^A-Za-z0-9])','i'),' ');
+ }
+ if(date){} else if(/(^|[^a-z0-9])depois\s+de\s+amanha(?=$|[^a-z0-9])/i.test(normalizedText)){const d=new Date(base);d.setDate(d.getDate()+2);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])depois\s+de\s+amanh[ãa](?=$|[^A-Za-z0-9])/i,' ')}
  else if(/(^|[^a-z0-9])amanha(?=$|[^a-z0-9])/i.test(normalizedText)){const d=new Date(base);d.setDate(d.getDate()+1);date=localISODate(d);text=text.replace(/(^|[^A-Za-z0-9])amanh[ãa](?=$|[^A-Za-z0-9])/i,' ')}
  else if(/(^|[^a-z0-9])hoje(?=$|[^a-z0-9])/i.test(normalizedText)){date=localISODate(base);text=text.replace(/(^|[^A-Za-z0-9])hoje(?=$|[^A-Za-z0-9])/i,' ')}
  else {
@@ -121,9 +136,11 @@ function parseSpokenAppointment(input){
 let taskRecognition=null, taskListening=false, taskHasTranscript=false;
 const taskVoiceBtn=$('#taskVoiceBtn'), taskStopBtn=$('#taskStopBtn'), taskVoiceStatus=$('#taskVoiceStatus'), taskInput=$('#taskInput'), taskSaveBtn=$('#taskSaveBtn');
 function taskVoiceIdle(){taskListening=false;taskRecognition=null;taskVoiceBtn.classList.remove('recording');taskVoiceBtn.textContent=taskHasTranscript?'🎙️ Gravar novamente':'🎙️ Adicionar por voz';taskStopBtn.classList.add('hidden');taskStopBtn.disabled=true;taskVoiceBtn.disabled=false;taskSaveBtn.textContent='＋ Salvar compromisso'}
-let taskVoiceGeneration=0;
+let taskVoiceGeneration=0, taskVoiceLastEndedAt=0;
 taskVoiceBtn.onclick=()=>{
  if(taskListening)return;
+ const waitMs=350-(Date.now()-taskVoiceLastEndedAt);
+ if(waitMs>0){taskVoiceBtn.disabled=true;setTimeout(()=>{taskVoiceBtn.disabled=false},waitMs);taskVoiceStatus.textContent='Preparando o microfone para uma nova gravação… toque novamente em um instante.';return;}
  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Speech){taskVoiceStatus.textContent='O reconhecimento direto não está disponível neste navegador. Toque no campo de texto e use o microfone do teclado do iPhone; depois toque em “Salvar compromisso”.';taskInput.focus();return}
  const generation=++taskVoiceGeneration;
@@ -133,7 +150,7 @@ taskVoiceBtn.onclick=()=>{
  const resetUI=()=>{if(generation!==taskVoiceGeneration)return;taskListening=false;taskRecognition=null;taskVoiceBtn.classList.remove('recording');taskVoiceBtn.textContent=taskHasTranscript?'🎙️ Gravar novamente':'🎙️ Adicionar por voz';taskStopBtn.classList.add('hidden');taskStopBtn.disabled=true;taskVoiceBtn.disabled=false};
  const finish=(message)=>{
    if(finished)return;
-   finished=true;
+   finished=true;taskVoiceLastEndedAt=Date.now();
    if(gotResult){
      const raw=taskInput.value.trim();
      if(raw){const parsed=parseSpokenAppointment(raw);taskInput.value=parsed.title||raw;if(parsed.date)$('#taskDate').value=parsed.date;if(parsed.time)$('#taskTime').value=parsed.time;taskHasTranscript=true;taskVoiceStatus.textContent='Texto reconhecido! '+(parsed.date?'Data preenchida. ':'')+(parsed.time?'Horário preenchido. ':'')+'Confira e toque em “Salvar compromisso”.'}
