@@ -155,14 +155,22 @@ taskVoiceBtn.onclick=()=>{
   taskHasTranscript=false;taskInput.value='';taskListening=true;taskVoiceBtn.textContent='🎙️ Ouvindo…';taskVoiceBtn.classList.add('recording');taskVoiceBtn.disabled=true;taskStopBtn.classList.remove('hidden');taskStopBtn.disabled=false;taskVoiceStatus.textContent='Estou ouvindo. Fale o compromisso e aguarde o texto aparecer. Se necessário, toque em “Parar”.';
   recognition.onresult=e=>{if(generation!==taskVoiceGeneration||ended)return;const results=[];for(let i=0;i<e.results.length;i++){const item=e.results[i][0]&&e.results[i][0].transcript?e.results[i][0].transcript.trim():'';if(item)results.push(item)}const transcript=results.join(' ').trim();if(transcript){taskInput.value=transcript;taskHasTranscript=true;gotResult=true;taskVoiceStatus.textContent='Reconheci: “'+transcript+'”. Aguarde ou toque em “Parar” e confira antes de salvar.'}};
   recognition.onerror=e=>{if(generation!==taskVoiceGeneration||ended)return;errorMessage=e.error==='not-allowed'?'Permita o acesso ao microfone nas configurações do navegador.':e.error==='no-speech'?'Não detectei fala. Toque novamente e fale logo após iniciar.':e.error==='network'?'O reconhecimento falhou por conexão. Confira a internet e tente novamente.':e.error==='aborted'?(gotResult?'Fala capturada. Confira o texto e salve o compromisso.':'A tentativa foi interrompida. Toque novamente para gravar.'):'Não consegui reconhecer a fala. Tente novamente ou use o microfone do teclado.';taskVoiceStatus.textContent=errorMessage+' Finalizando o microfone…';
-   // Alguns navegadores emitem onerror antes de onend; não liberar a próxima sessão prematuramente.
-   if(endWatchdog)clearTimeout(endWatchdog);endWatchdog=setTimeout(()=>{if(!ended){try{recognition.abort()}catch(e){}finishAfterEnd()}},1800);
+   // onerror não significa que a sessão do microfone já foi liberada.
+   // Não chamar finishAfterEnd aqui: só o evento onend libera a próxima captura.
+   if(endWatchdog)clearTimeout(endWatchdog);
+   endWatchdog=setTimeout(()=>{
+    if(generation!==taskVoiceGeneration||ended)return;
+    taskVoiceStatus.textContent=(errorMessage||'A captura encontrou um problema.')+' Aguardando o navegador liberar o microfone; não toque novamente ainda.';
+    try{recognition.abort()}catch(e){}
+    // Intencionalmente não liberar os controles aqui. A nova tentativa só é
+    // habilitada quando o navegador confirmar o fim da sessão em onend.
+   },5000);
   };
   recognition.onend=()=>{if(generation!==taskVoiceGeneration||ended)return;finishAfterEnd()};
   recognition.start();
  }catch(err){if(recognition){try{recognition.onresult=null;recognition.onerror=null;recognition.onend=null;recognition.abort()}catch(e){}}errorMessage='Não foi possível iniciar o microfone. Confira a permissão do Safari e tente novamente.';taskVoiceStatus.textContent=errorMessage;cleanup()}
 };
-taskStopBtn.onclick=()=>{const recognition=taskRecognition;if(!recognition||!taskListening)return;taskVoiceStatus.textContent='Finalizando a fala… aguarde o texto aparecer.';taskStopBtn.disabled=true;try{recognition.stop()}catch(e){taskVoiceStatus.textContent='Não consegui finalizar esta tentativa. Tente novamente.';try{recognition.abort()}catch(_){}taskVoiceGeneration++;taskVoiceIdle()}};
+taskStopBtn.onclick=()=>{const recognition=taskRecognition;if(!recognition||!taskListening)return;taskVoiceStatus.textContent='Finalizando a fala… aguarde o texto aparecer.';taskStopBtn.disabled=true;try{recognition.stop()}catch(e){taskVoiceStatus.textContent='Solicitei o encerramento da captura. Aguarde a liberação do microfone antes de tentar novamente.';try{recognition.abort()}catch(_){}}};
 
 $('#diaryVoiceBtn').onclick=()=>startSpeech($('#diaryInput'),$('#diaryVoiceStatus'),$('#diaryVoiceBtn'));
 
