@@ -136,14 +136,15 @@ function parseSpokenAppointment(input){
 let taskRecognition=null, taskListening=false, taskHasTranscript=false;
 const taskVoiceBtn=$('#taskVoiceBtn'), taskStopBtn=$('#taskStopBtn'), taskVoiceStatus=$('#taskVoiceStatus'), taskInput=$('#taskInput'), taskSaveBtn=$('#taskSaveBtn');
 function taskVoiceIdle(){taskListening=false;taskRecognition=null;taskVoiceBtn.classList.remove('recording');taskVoiceBtn.textContent=taskHasTranscript?'🎙️ Gravar novamente':'🎙️ Adicionar por voz';taskStopBtn.classList.add('hidden');taskStopBtn.disabled=true;taskVoiceBtn.disabled=false;taskSaveBtn.textContent='＋ Salvar compromisso'}
-let taskVoiceGeneration=0;
+let taskVoiceGeneration=0, taskStopWatchdog=null;
 taskVoiceBtn.onclick=()=>{
  if(taskListening||taskVoiceBtn.disabled)return;
  const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!Speech){taskVoiceStatus.textContent='O reconhecimento direto não está disponível neste navegador. Toque no campo de texto e use o microfone do teclado do iPhone; depois toque em “Salvar compromisso”.';taskInput.focus();return}
  const generation=++taskVoiceGeneration;
+ if(taskRecognition){try{taskRecognition.abort()}catch(e){}}
  let recognition=null, gotResult=false, ended=false, errorMessage='', endWatchdog=null;
- const cleanup=()=>{if(endWatchdog){clearTimeout(endWatchdog);endWatchdog=null}if(generation!==taskVoiceGeneration)return;taskListening=false;taskRecognition=null;taskVoiceBtn.classList.remove('recording');taskVoiceBtn.textContent=taskHasTranscript?'🎙️ Gravar novamente':'🎙️ Adicionar por voz';taskStopBtn.classList.add('hidden');taskStopBtn.disabled=true;taskVoiceBtn.disabled=false};
+ const cleanup=()=>{if(endWatchdog){clearTimeout(endWatchdog);endWatchdog=null}if(taskStopWatchdog){clearTimeout(taskStopWatchdog);taskStopWatchdog=null}if(generation!==taskVoiceGeneration)return;taskListening=false;taskRecognition=null;taskVoiceBtn.classList.remove('recording');taskVoiceBtn.textContent=taskHasTranscript?'🎙️ Gravar novamente':'🎙️ Adicionar por voz';taskStopBtn.classList.add('hidden');taskStopBtn.disabled=true;taskVoiceBtn.disabled=false};
  const finishAfterEnd=()=>{
    if(ended)return;ended=true;
    if(gotResult){const raw=taskInput.value.trim();if(raw){const parsed=parseSpokenAppointment(raw);taskInput.value=parsed.title||raw;if(parsed.date)$('#taskDate').value=parsed.date;if(parsed.time)$('#taskTime').value=parsed.time;taskHasTranscript=true;taskVoiceStatus.textContent='Texto reconhecido! '+(parsed.date?'Data preenchida. ':'')+(parsed.time?'Horário preenchido. ':'')+'Confira e toque em “Salvar compromisso”.'}}
@@ -160,17 +161,18 @@ taskVoiceBtn.onclick=()=>{
    if(endWatchdog)clearTimeout(endWatchdog);
    endWatchdog=setTimeout(()=>{
     if(generation!==taskVoiceGeneration||ended)return;
-    taskVoiceStatus.textContent=(errorMessage||'A captura encontrou um problema.')+' Aguardando o navegador liberar o microfone; não toque novamente ainda.';
+    taskVoiceStatus.textContent=(errorMessage||'A captura encontrou um problema.')+' Reiniciando a captura para liberar a próxima tentativa…';
     try{recognition.abort()}catch(e){}
-    // Intencionalmente não liberar os controles aqui. A nova tentativa só é
-    // habilitada quando o navegador confirmar o fim da sessão em onend.
-   },5000);
+    // Recuperação de segurança: se Safari não emitir onend, libera a interface
+    // após abortar. A próxima tentativa também aborta a referência anterior.
+    taskStopWatchdog=setTimeout(()=>{if(generation!==taskVoiceGeneration||ended)return;finishAfterEnd()},1800);
+   },2500);
   };
   recognition.onend=()=>{if(generation!==taskVoiceGeneration||ended)return;finishAfterEnd()};
   recognition.start();
  }catch(err){if(recognition){try{recognition.onresult=null;recognition.onerror=null;recognition.onend=null;recognition.abort()}catch(e){}}errorMessage='Não foi possível iniciar o microfone. Confira a permissão do Safari e tente novamente.';taskVoiceStatus.textContent=errorMessage;cleanup()}
 };
-taskStopBtn.onclick=()=>{const recognition=taskRecognition;if(!recognition||!taskListening)return;taskVoiceStatus.textContent='Finalizando a fala… aguarde o texto aparecer.';taskStopBtn.disabled=true;try{recognition.stop()}catch(e){taskVoiceStatus.textContent='Solicitei o encerramento da captura. Aguarde a liberação do microfone antes de tentar novamente.';try{recognition.abort()}catch(_){}}};
+taskStopBtn.onclick=()=>{const recognition=taskRecognition;if(!recognition||!taskListening)return;taskVoiceStatus.textContent='Finalizando a fala…';taskStopBtn.disabled=true;try{recognition.stop()}catch(e){try{recognition.abort()}catch(_){}}if(taskStopWatchdog)clearTimeout(taskStopWatchdog);const generation=taskVoiceGeneration;taskStopWatchdog=setTimeout(()=>{if(generation!==taskVoiceGeneration||!taskListening)return;taskVoiceStatus.textContent='O Safari demorou a encerrar. Estou liberando a interface para você tentar novamente.';try{recognition.abort()}catch(_){}const recovery=setTimeout(()=>{if(generation===taskVoiceGeneration&&taskListening){taskStopWatchdog=null;taskVoiceGeneration++;taskVoiceIdle();taskVoiceStatus.textContent='A captura anterior foi interrompida por demora. Toque em “Adicionar por voz” para uma nova tentativa.'}},1800);taskStopWatchdog=recovery},3000)};
 
 $('#diaryVoiceBtn').onclick=()=>startSpeech($('#diaryInput'),$('#diaryVoiceStatus'),$('#diaryVoiceBtn'));
 
